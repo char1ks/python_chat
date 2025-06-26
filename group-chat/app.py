@@ -101,7 +101,7 @@ def get_chat_history(group):
         return local_chat_history.get(group, [])
 
 def setup_redis_pubsub():
-    """Настраивает подписку на сообщения Redis для синхронизации"""
+    """Настраивает подписку на сообщения Redis для синхронизации между бэкендами"""
     if USE_REDIS and redis_client:
         try:
             pubsub = redis_client.pubsub()
@@ -115,9 +115,11 @@ def setup_redis_pubsub():
                             group = channel.split(':')[1]  # Извлекаем group_1 или group_2
                             message_data = json.loads(message['data'])
                             
-                            # Отправляем сообщение всем подключенным к этому бэкенду пользователям группы
-                            socketio.emit('new_message', message_data, room=group)
-                            print(f"🔄 Backend {BACKEND_ID}: Synced message to {group}")
+                            # Проверяем, что сообщение пришло с другого бэкенда
+                            if message_data.get('backend_id') != BACKEND_ID:
+                                # Отправляем сообщение всем подключенным к этому бэкенду пользователям группы
+                                socketio.emit('new_message', message_data, room=group)
+                                print(f"🔄 Backend {BACKEND_ID}: Synced message from Backend {message_data.get('backend_id')} to {group}")
                         except Exception as e:
                             print(f"❌ Backend {BACKEND_ID}: Error processing Redis message: {e}")
             
@@ -228,12 +230,11 @@ def handle_message(data):
             'backend_id': BACKEND_ID
         }
         
-        # Сохраняем сообщение (это также опубликует его в Redis для синхронизации)
-        save_message_to_storage(group, message_data)
+        # ВСЕГДА отправляем сообщение локальным пользователям сразу
+        emit('new_message', message_data, room=group)
         
-        # Отправляем сообщение только локальным пользователям (Redis PubSub обработает остальных)
-        if not USE_REDIS:
-            emit('new_message', message_data, room=group)
+        # Сохраняем сообщение в хранилище
+        save_message_to_storage(group, message_data)
         
         print(f"💬 Backend {BACKEND_ID}: Message in {group} from {user_info['username']}")
 
