@@ -5,6 +5,9 @@ let isTyping = false;
 let typingTimeout;
 let isDarkTheme = true;
 let typingUsers = new Set(); // Пользователи, которые печатают
+let longPressTimer = null;
+let isLongPressing = false;
+let effectsPanelVisible = false;
 
 // === ИНИЦИАЛИЗАЦИЯ ===
 document.addEventListener('DOMContentLoaded', function() {
@@ -42,8 +45,13 @@ function bindEvents() {
         if (e.key === 'Enter') joinChat();
     });
     
-    // Отправка сообщений
-    sendBtn.addEventListener('click', sendMessage);
+    // Отправка сообщений и показ эффектов
+    sendBtn.addEventListener('mousedown', handleSendButtonDown);
+    sendBtn.addEventListener('mouseup', handleSendButtonUp);
+    sendBtn.addEventListener('mouseleave', handleSendButtonUp);
+    sendBtn.addEventListener('touchstart', handleSendButtonDown);
+    sendBtn.addEventListener('touchend', handleSendButtonUp);
+    
     messageInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -73,6 +81,9 @@ function bindEvents() {
                 createSpecialEffect(effect);
                 socket.emit('send_special_effect', { effect_type: effect });
             }
+            
+            // Скрываем панель эффектов после отправки
+            hideEffectsPanel();
         });
     });
     
@@ -114,6 +125,47 @@ function joinChat() {
     showNotification(`Добро пожаловать, ${username}! 🎉`, 'success');
 }
 
+// === ОБРАБОТКА КНОПКИ ОТПРАВКИ ===
+function handleSendButtonDown(e) {
+    e.preventDefault();
+    
+    const messageInput = document.getElementById('message-input');
+    const message = messageInput.value.trim();
+    
+    // Если есть текст, начинаем таймер для долгого нажатия
+    if (message) {
+        isLongPressing = true;
+        const sendBtn = document.getElementById('send-btn');
+        sendBtn.classList.add('long-press');
+        
+        longPressTimer = setTimeout(() => {
+            if (isLongPressing) {
+                showEffectsPanel();
+                showNotification('Выберите эффект для отправки! 🎨', 'info');
+            }
+        }, 500); // 0.5 секунды для активации
+    }
+}
+
+function handleSendButtonUp(e) {
+    e.preventDefault();
+    
+    const sendBtn = document.getElementById('send-btn');
+    sendBtn.classList.remove('long-press');
+    
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+    
+    // Если это был короткий клик и панель эффектов не видна
+    if (isLongPressing && !effectsPanelVisible) {
+        sendMessage();
+    }
+    
+    isLongPressing = false;
+}
+
 // === ОТПРАВКА СООБЩЕНИЙ ===
 function sendMessage() {
     const messageInput = document.getElementById('message-input');
@@ -134,6 +186,9 @@ function sendMessage() {
     
     // Сбрасываем индикатор печатания
     clearTypingTimeout();
+    
+    // Скрываем панель эффектов если она открыта
+    hideEffectsPanel();
 }
 
 // === SOCKET.IO СОБЫТИЯ ===
@@ -557,6 +612,40 @@ function showLoginModal() {
     modal.style.display = 'flex';
     document.getElementById('username-input').focus();
 }
+
+// === УПРАВЛЕНИЕ ПАНЕЛЬЮ ЭФФЕКТОВ ===
+function showEffectsPanel() {
+    const panel = document.getElementById('effects-panel');
+    panel.style.display = 'block';
+    panel.style.animation = 'slideInFromRight 0.3s ease-out';
+    effectsPanelVisible = true;
+    
+    // Создаём эффект появления
+    createMagicSparkles(panel);
+}
+
+function hideEffectsPanel() {
+    const panel = document.getElementById('effects-panel');
+    if (effectsPanelVisible) {
+        panel.style.animation = 'slideOutToRight 0.3s ease-out';
+        setTimeout(() => {
+            panel.style.display = 'none';
+            effectsPanelVisible = false;
+        }, 300);
+    }
+}
+
+// Скрываем панель при клике вне её
+document.addEventListener('click', (e) => {
+    const panel = document.getElementById('effects-panel');
+    const sendBtn = document.getElementById('send-btn');
+    
+    if (effectsPanelVisible && 
+        !panel.contains(e.target) && 
+        !sendBtn.contains(e.target)) {
+        hideEffectsPanel();
+    }
+});
 
 // === CSS АНИМАЦИИ ЧЕРЕЗ JS ===
 const style = document.createElement('style');

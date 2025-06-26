@@ -248,11 +248,11 @@ body {
 
 /* === ОСНОВНАЯ ОБЛАСТЬ === */
 .chat-main {
-    display: grid;
-    grid-template-columns: 1fr 280px;
-    gap: 20px;
+    display: flex;
+    flex-direction: column;
     padding: 20px 30px;
     overflow: hidden;
+    position: relative;
 }
 
 /* === ОБЛАСТЬ СООБЩЕНИЙ === */
@@ -376,14 +376,27 @@ body {
     padding: 20px;
     backdrop-filter: blur(20px);
     height: fit-content;
+    position: absolute;
+    right: 20px;
+    bottom: 100px;
+    z-index: 100;
+    box-shadow: var(--shadow-heavy);
+    animation: slideInFromRight 0.3s ease-out;
 }
 
 .effects-title {
     font-weight: 600;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
     text-align: center;
     color: var(--text-primary);
     font-size: 1rem;
+}
+
+.effects-help {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 15px;
 }
 
 .effects-grid {
@@ -483,6 +496,11 @@ body {
 
 .send-button:active {
     transform: translateY(-1px) scale(1.05);
+}
+
+.send-button.long-press {
+    background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+    animation: longPressGlow 0.3s ease-out;
 }
 
 /* === АНИМАЦИИ === */
@@ -808,17 +826,51 @@ body {
     }
 }
 
+@keyframes slideInFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%) scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes slideOutToRight {
+    from {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%) scale(0.8);
+    }
+}
+
+@keyframes longPressGlow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(240, 147, 251, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(240, 147, 251, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(240, 147, 251, 0);
+    }
+}
+
 /* === АДАПТИВНОСТЬ === */
 @media (max-width: 768px) {
     .chat-main {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr auto;
+        padding: 15px 20px;
     }
     
     .effects-panel {
-        order: 2;
-        max-height: 120px;
-        overflow-y: auto;
+        right: 10px;
+        bottom: 90px;
+        width: 280px;
+        max-width: calc(100vw - 20px);
     }
     
     .effects-grid {
@@ -849,8 +901,22 @@ body {
         max-width: 95%;
     }
     
+    .effects-panel {
+        right: 5px;
+        bottom: 80px;
+        width: calc(100vw - 10px);
+        padding: 15px;
+    }
+    
     .effects-grid {
         grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }
+    
+    .effect-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
     }
     
     .header-left h1 {
@@ -859,5 +925,9 @@ body {
     
     .online-status {
         font-size: 0.8rem;
+    }
+    
+    .effects-help {
+        font-size: 0.75rem;
     }
 } 
