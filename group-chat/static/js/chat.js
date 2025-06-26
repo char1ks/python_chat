@@ -193,6 +193,19 @@ function sendMessage() {
 
 // === SOCKET.IO СОБЫТИЯ ===
 function setupSocketEvents() {
+    socket.on('group_assigned', (data) => {
+        const groupNumber = data.group.split('_')[1];
+        const groupName = groupNumber === '1' ? 'Группа Альфа 🔥' : 'Группа Бета ⚡';
+        
+        // Обновляем интерфейс с информацией о группе
+        updateGroupInfo(groupName, data.group);
+        
+        addSystemMessage(`Вы попали в ${groupName}! Добро пожаловать! 🎉`);
+        showNotification(`Назначена ${groupName}`, 'success');
+        
+        console.log(`Assigned to group: ${data.group}`);
+    });
+    
     socket.on('user_joined', (data) => {
         addSystemMessage(`${data.username} присоединился к чату! 👋`);
         playNotificationSound();
@@ -207,11 +220,13 @@ function setupSocketEvents() {
     });
     
     socket.on('new_message', (data) => {
+        console.log('Received message:', data);
         addMessage(data);
         playNotificationSound();
     });
     
     socket.on('chat_history', (data) => {
+        console.log('Received chat history:', data);
         data.messages.forEach(message => addMessage(message, false));
     });
     
@@ -605,6 +620,79 @@ function updateUserCount(count) {
     const userCountElement = document.getElementById('user-count');
     const word = count === 1 ? 'человек' : count < 5 ? 'человека' : 'человек';
     userCountElement.textContent = `${count} ${word} онлайн`;
+}
+
+function updateGroupInfo(groupName, groupId) {
+    // Обновляем заголовок чата с названием группы
+    const chatHeader = document.querySelector('.chat-header h1');
+    if (chatHeader) {
+        chatHeader.innerHTML = `Веб-чат <span style="font-size: 0.8em; color: #007bff;">(${groupName})</span>`;
+    }
+    
+    // Добавляем индикатор группы
+    let groupIndicator = document.getElementById('group-indicator');
+    if (!groupIndicator) {
+        groupIndicator = document.createElement('div');
+        groupIndicator.id = 'group-indicator';
+        groupIndicator.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 1000;
+        `;
+        document.querySelector('.chat-header').appendChild(groupIndicator);
+    }
+    
+    groupIndicator.textContent = groupName;
+    
+    // Добавляем цветовую тему для группы
+    const body = document.body;
+    body.classList.remove('group-1', 'group-2');
+    body.classList.add(groupId);
+    
+    // Добавляем группоспецифичные стили
+    addGroupStyles(groupId);
+}
+
+function addGroupStyles(groupId) {
+    const existingStyle = document.getElementById('group-specific-styles');
+    if (existingStyle) {
+        existingStyle.remove();
+    }
+    
+    const style = document.createElement('style');
+    style.id = 'group-specific-styles';
+    
+    if (groupId === 'group_1') {
+        style.textContent = `
+            .group-1 .message.own .message-content {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            
+            .group-1 .group-indicator {
+                background: linear-gradient(45deg, #667eea, #764ba2) !important;
+            }
+        `;
+    } else {
+        style.textContent = `
+            .group-2 .message.own .message-content {
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            }
+            
+            .group-2 .group-indicator {
+                background: linear-gradient(45deg, #f093fb, #f5576c) !important;
+            }
+        `;
+    }
+    
+    document.head.appendChild(style);
 }
 
 function showLoginModal() {

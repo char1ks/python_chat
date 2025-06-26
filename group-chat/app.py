@@ -31,7 +31,6 @@ if USE_REDIS:
 # Локальное хранение
 active_users = {}
 local_chat_history = {'group_1': [], 'group_2': []}
-user_groups = {}  # Автоматическое распределение пользователей
 
 print(f"🚀 Backend {BACKEND_ID} started (Redis: {USE_REDIS})")
 
@@ -43,16 +42,25 @@ def index():
 def health():
     return {'status': 'ok', 'backend_id': BACKEND_ID, 'redis': USE_REDIS}
 
-def get_user_group(user_id):
-    """Автоматически определяет группу пользователя"""
-    if user_id in user_groups:
-        return user_groups[user_id]
+def get_next_user_group():
+    """Получает следующую группу для пользователя используя round-robin"""
+    if USE_REDIS and redis_client:
+        try:
+            # Атомарно увеличиваем счетчик пользователей
+            user_counter = redis_client.incr('user_counter')
+            group_num = ((user_counter - 1) % 2) + 1
+            group = f'group_{group_num}'
+            print(f"🎯 Backend {BACKEND_ID}: User #{user_counter} assigned to {group}")
+            return group
+        except Exception as e:
+            print(f"❌ Backend {BACKEND_ID}: Redis error in get_next_user_group: {e}")
+            # Fallback к локальной логике
+            pass
     
-    # Определяем группу по hash от user_id для consistency
-    group_num = int(hashlib.md5(user_id.encode()).hexdigest(), 16) % 2 + 1
-    group = f'group_{group_num}'
-    user_groups[user_id] = group
-    return group
+    # Fallback для случая без Redis - используем время
+    import time
+    user_num = int(time.time() * 1000) % 2 + 1
+    return f'group_{user_num}'
 
 def save_message_to_storage(group, message_data):
     """Сохраняет сообщение в локальную память или Redis"""
@@ -62,6 +70,10 @@ def save_message_to_storage(group, message_data):
             chat_key = f"chat_history:{group}"
             redis_client.lpush(chat_key, json.dumps(message_data))
             redis_client.ltrim(chat_key, 0, 99)  # Ограничиваем до 100 сообщений
+            
+            # Публикуем сообщение для синхронизации между бэкендами
+            redis_client.publish(f'new_message:{group}', json.dumps(message_data))
+            
             print(f"📝 Backend {BACKEND_ID}: Saved to Redis group {group}")
         except Exception as e:
             print(f"❌ Backend {BACKEND_ID}: Redis error: {e}")
@@ -87,6 +99,39 @@ def get_chat_history(group):
             return local_chat_history.get(group, [])
     else:
         return local_chat_history.get(group, [])
+
+def setup_redis_pubsub():
+    """Настраивает подписку на сообщения Redis для синхронизации"""
+    if USE_REDIS and redis_client:
+        try:
+            pubsub = redis_client.pubsub()
+            pubsub.subscribe('new_message:group_1', 'new_message:group_2')
+            
+            def listen_for_messages():
+                for message in pubsub.listen():
+                    if message['type'] == 'message':
+                        try:
+                            channel = message['channel']
+                            group = channel.split(':')[1]  # Извлекаем group_1 или group_2
+                            message_data = json.loads(message['data'])
+                            
+                            # Отправляем сообщение всем подключенным к этому бэкенду пользователям группы
+                            socketio.emit('new_message', message_data, room=group)
+                            print(f"🔄 Backend {BACKEND_ID}: Synced message to {group}")
+                        except Exception as e:
+                            print(f"❌ Backend {BACKEND_ID}: Error processing Redis message: {e}")
+            
+            # Запускаем слушатель в отдельном потоке
+            import threading
+            redis_thread = threading.Thread(target=listen_for_messages, daemon=True)
+            redis_thread.start()
+            print(f"📡 Backend {BACKEND_ID}: Redis PubSub listener started")
+            
+        except Exception as e:
+            print(f"❌ Backend {BACKEND_ID}: Failed to setup Redis PubSub: {e}")
+
+# Настраиваем Redis PubSub при запуске
+setup_redis_pubsub()
 
 @socketio.on('connect')
 def on_connect():
@@ -121,8 +166,8 @@ def on_join_chat(data):
     username = data['username']
     user_id = str(uuid.uuid4())
     
-    # Автоматически определяем группу
-    group = get_user_group(user_id)
+    # Получаем следующую группу по round-robin
+    group = get_next_user_group()
     
     active_users[request.sid] = {
         'username': username,
@@ -183,11 +228,12 @@ def handle_message(data):
             'backend_id': BACKEND_ID
         }
         
-        # Сохраняем сообщение
+        # Сохраняем сообщение (это также опубликует его в Redis для синхронизации)
         save_message_to_storage(group, message_data)
         
-        # Отправляем сообщение всем пользователям группы
-        emit('new_message', message_data, room=group)
+        # Отправляем сообщение только локальным пользователям (Redis PubSub обработает остальных)
+        if not USE_REDIS:
+            emit('new_message', message_data, room=group)
         
         print(f"💬 Backend {BACKEND_ID}: Message in {group} from {user_info['username']}")
 
