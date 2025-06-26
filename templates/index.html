@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Супер Чат с Анимациями</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <!-- Контейнер для анимированных частиц -->
+    <div id="particles-container"></div>
+    
+    <!-- Модальное окно входа -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <div class="login-header">
+                <h2>🌟 Добро пожаловать в Супер Чат!</h2>
+                <p>Введите ваше имя, чтобы начать общение</p>
+            </div>
+            <div class="login-form">
+                <input type="text" id="username-input" placeholder="Ваше имя..." maxlength="20">
+                <button id="join-btn">🚀 Войти в чат</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основной интерфейс чата -->
+    <div id="chat-container" style="display: none;">
+        <!-- Заголовок чата -->
+        <header class="chat-header">
+            <div class="header-left">
+                <h1>💬 Супер Чат</h1>
+                <div class="online-status">
+                    <span class="online-dot"></span>
+                    <span id="user-count">0 человек онлайн</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="theme-toggle" class="icon-btn" title="Сменить тему">🌙</button>
+                <button id="settings-btn" class="icon-btn" title="Настройки">⚙️</button>
+            </div>
+        </header>
+
+        <!-- Основная область чата -->
+        <main class="chat-main">
+            <!-- Область сообщений -->
+            <div class="messages-area">
+                <div id="messages-container"></div>
+                <div id="typing-indicator" style="display: none;">
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <span id="typing-text">Кто-то печатает...</span>
+                </div>
+            </div>
+
+            <!-- Панель эффектов -->
+            <div class="effects-panel">
+                <div class="effects-title">✨ Крутые эффекты</div>
+                <div class="effects-grid">
+                    <button class="effect-btn emoji-btn" data-emoji="😀" title="Смайлик">😀</button>
+                    <button class="effect-btn emoji-btn" data-emoji="❤️" title="Сердце">❤️</button>
+                    <button class="effect-btn emoji-btn" data-emoji="🎉" title="Праздник">🎉</button>
+                    <button class="effect-btn emoji-btn" data-emoji="🔥" title="Огонь">🔥</button>
+                    <button class="effect-btn emoji-btn" data-emoji="⭐" title="Звезда">⭐</button>
+                    <button class="effect-btn emoji-btn" data-emoji="💎" title="Алмаз">💎</button>
+                    <button class="effect-btn special-effect" data-effect="confetti" title="Конфетти">🎊</button>
+                    <button class="effect-btn special-effect" data-effect="fireworks" title="Фейерверк">🎆</button>
+                    <button class="effect-btn special-effect" data-effect="rain" title="Дождь">🌧️</button>
+                    <button class="effect-btn special-effect" data-effect="snow" title="Снег">❄️</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Форма отправки сообщений -->
+        <footer class="chat-footer">
+            <div class="message-form">
+                <input type="text" id="message-input" placeholder="Напишите сообщение..." maxlength="500">
+                <button id="send-btn" class="send-button">
+                    <span class="send-icon">➤</span>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Контейнер для анимаций -->
+    <div id="animations-overlay"></div>
+
+    <!-- Аудио для звуков -->
+    <audio id="message-sound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+L2tm..."></source>
+    </audio>
+
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
+</html> 
