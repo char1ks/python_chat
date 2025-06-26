@@ -200,40 +200,6 @@ body {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-bottom: 5px;
-}
-
-.group-info {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 5px;
-    flex-wrap: wrap;
-}
-
-.group-badge {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.group-badge.group_1 {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-}
-
-.group-badge.group_2 {
-    background: linear-gradient(135deg, #f093fb, #f5576c);
-}
-
-.backend-info {
-    background: var(--bg-input);
-    color: var(--text-secondary);
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    border: 1px solid var(--border-color);
 }
 
 .online-status {

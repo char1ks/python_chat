@@ -1,8 +1,6 @@
 // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
 let socket;
 let currentUser = null;
-let currentGroup = null;
-let backendId = null;
 let isTyping = false;
 let typingTimeout;
 let isDarkTheme = true;
@@ -195,15 +193,8 @@ function sendMessage() {
 
 // === SOCKET.IO СОБЫТИЯ ===
 function setupSocketEvents() {
-    socket.on('group_assigned', (data) => {
-        currentGroup = data.group;
-        backendId = data.backend_id;
-        updateGroupInfo(data.group, data.backend_id);
-        showNotification(`Вы попали в ${getGroupName(data.group)}! 🎯`, 'success');
-    });
-    
     socket.on('user_joined', (data) => {
-        addSystemMessage(`${data.username} присоединился к ${getGroupName(data.group)}! 👋`);
+        addSystemMessage(`${data.username} присоединился к чату! 👋`);
         playNotificationSound();
     });
     
@@ -212,7 +203,7 @@ function setupSocketEvents() {
     });
     
     socket.on('user_count', (data) => {
-        updateUserCount(data.count, data.group);
+        updateUserCount(data.count);
     });
     
     socket.on('new_message', (data) => {
@@ -221,13 +212,7 @@ function setupSocketEvents() {
     });
     
     socket.on('chat_history', (data) => {
-        clearMessages();
         data.messages.forEach(message => addMessage(message, false));
-        if (data.messages.length > 0) {
-            showNotification(`Загружена история: ${data.messages.length} сообщений`, 'info');
-        } else {
-            showNotification('История чата пуста', 'info');
-        }
     });
     
     socket.on('emoji_animation', (data) => {
@@ -247,18 +232,6 @@ function setupSocketEvents() {
             typingUsers.delete(data.username);
         }
         updateTypingIndicator();
-    });
-    
-    socket.on('connect_error', (error) => {
-        showNotification('Ошибка подключения к серверу! 😟', 'danger');
-    });
-    
-    socket.on('disconnect', (reason) => {
-        showNotification('Соединение с сервером потеряно! 🔌', 'warning');
-    });
-    
-    socket.on('reconnect', () => {
-        showNotification('Переподключение к серверу! ✅', 'success');
     });
 }
 
@@ -628,33 +601,10 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function updateUserCount(count, group) {
+function updateUserCount(count) {
     const userCountElement = document.getElementById('user-count');
     const word = count === 1 ? 'человек' : count < 5 ? 'человека' : 'человек';
-    const groupName = getGroupName(group);
-    userCountElement.textContent = `${count} ${word} в ${groupName}`;
-}
-
-function updateGroupInfo(group, backend) {
-    const groupBadge = document.getElementById('group-badge');
-    const backendInfo = document.getElementById('backend-info');
-    
-    groupBadge.textContent = getGroupName(group);
-    groupBadge.className = `group-badge ${group}`;
-    backendInfo.textContent = `Backend: ${backend}`;
-}
-
-function getGroupName(group) {
-    switch(group) {
-        case 'group_1': return 'Группа 1 🔵';
-        case 'group_2': return 'Группа 2 🔴';
-        default: return 'Неизвестная группа';
-    }
-}
-
-function clearMessages() {
-    const messagesContainer = document.getElementById('messages-container');
-    messagesContainer.innerHTML = '';
+    userCountElement.textContent = `${count} ${word} онлайн`;
 }
 
 function showLoginModal() {
